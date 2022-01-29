@@ -14,7 +14,7 @@ class InferenceConfig:
     #   输入网络的图片resize后的大小
     img_input_shape = [512, 512]
     #   是否使用letterbox_image方法，对输入图像进行不失真的resize
-    letterbox_image = False,
+    letterbox_image = False
     # 得分置信度
     score_threshold = 0.3
     # 是否需要nms
@@ -51,9 +51,9 @@ if __name__ == "__main__":
             run_time = end_time - begin_time
             print('inference time:', run_time)
             # 绘制bbox
-            top_label = np.array(detection_resuls[0][:, 5], dtype='int32')
-            top_conf = detection_resuls[0][:, 4]
-            top_boxes = detection_resuls[0][:, :4]
-            draw_rectangle(top_label, top_conf, top_boxes, image, InferenceConfig.img_input_shape, num_classes,
+            label = np.array(detection_resuls[0][:, 5], dtype='int32')
+            score = detection_resuls[0][:, 4]
+            bbox = detection_resuls[0][:, :4]
+            draw_rectangle(label, score, bbox, image, InferenceConfig.img_input_shape, num_classes,
                            class_names)
             image.show()
