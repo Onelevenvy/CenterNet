@@ -105,31 +105,26 @@ class DetectionHead(nn.Module):
         return detects_results
 
     def centernet_correct_boxes(self, box_xy, box_wh, input_shape, image_shape, letterbox_image):
-        # -----------------------------------------------------------------#
-        #   把y轴放前面是因为方便预测框和图像的宽高进行相乘
-        # -----------------------------------------------------------------#
-        box_yx = box_xy[..., ::-1]
-        box_hw = box_wh[..., ::-1]
         input_shape = np.array(input_shape)
         image_shape = np.array(image_shape)
 
         if letterbox_image:
-            # -----------------------------------------------------------------#
             #   这里求出来的offset是图像有效区域相对于图像左上角的偏移情况
             #   new_shape指的是宽高缩放情况
-            # -----------------------------------------------------------------#
             new_shape = np.round(image_shape * np.min(input_shape / image_shape))
             offset = (input_shape - new_shape) / 2. / input_shape
             scale = input_shape / new_shape
 
-            box_yx = (box_yx - offset) * scale
-            box_hw *= scale
+            box_xy = (box_xy - offset) * scale
+            box_wh *= scale
 
-        box_mins = box_yx - (box_hw / 2.)
-        box_maxes = box_yx + (box_hw / 2.)
+        box_mins = box_xy - (box_wh / 2.)
+        box_maxes = box_xy + (box_wh / 2.)
         boxes = np.concatenate([box_mins[..., 0:1], box_mins[..., 1:2], box_maxes[..., 0:1], box_maxes[..., 1:2]],
                                axis=-1)
-        boxes *= np.concatenate([image_shape, image_shape], axis=-1)
+        boxes *= np.concatenate([image_shape[1:2], image_shape[0:1]] * 2, axis=-1)
+        # boxes *= np.concatenate([image_shape, image_shape], axis=-1)
+        print(boxes)
         return boxes
 
     # 预测后处理
@@ -172,8 +167,9 @@ class DetectionHead(nn.Module):
 
             if output[i] is not None:
                 output[i] = output[i].cpu().numpy()
-                box_xy, box_wh = (output[i][:, 0:2] + output[i][:, 2:4]) / 2, output[i][:, 2:4] - output[i][:, 0:2]
-                output[i][:, :4] = self.centernet_correct_boxes(box_xy, box_wh, input_shape, image_shape,
+                box_center_xy, box_wh = (output[i][:, 0:2] + output[i][:, 2:4]) / 2, output[i][:, 2:4] - output[i][:,
+                                                                                                         0:2]
+                output[i][:, :4] = self.centernet_correct_boxes(box_center_xy, box_wh, input_shape, image_shape,
                                                                 letterbox_image)
         return output
 
