@@ -104,22 +104,28 @@ class DetectionHead(nn.Module):
             detects_results.append(detects_result)
         return detects_results
 
-    def centernet_correct_boxes(self, box_xy, box_wh, input_shape, image_shape, letterbox_image):
-        if letterbox_image:
-            #   假设在高度方向增加了灰条
-            new_shape = np.round(image_shape * np.min(input_shape / image_shape))
-            offset = [(input_shape - new_shape) / 2. / input_shape][::-1]
-            offset = offset[::-1]
-            scale = input_shape / new_shape
-            scale_wh = scale[::-1]
-            box_xy = (box_xy - offset) * scale  # offset x不变，y变小   scale：x不变，y变小 相当于x变大,y不变
-            box_wh *= scale_wh  # scale  w不变， h占比变大
+    def predbox2ori_box(self, box_xy, box_wh, input_shape, image_shape, letterbox_image):
+        '''
+        将预测结果映射回原图坐标
+        '''
+        box_yx = box_xy[..., ::-1]
+        box_hw = box_wh[..., ::-1]
+        input_shape = np.array(input_shape)
+        image_shape = np.array(image_shape)
 
-        box_mins = box_xy - (box_wh / 2.)
-        box_maxes = box_xy + (box_wh / 2.)
-        boxes = np.concatenate([box_mins[..., 0:1], box_mins[..., 1:2], box_maxes[..., 0:1], box_maxes[..., 1:2]],
+        if letterbox_image:
+            new_shape = np.round(image_shape * np.min(input_shape / image_shape))
+            offset = (input_shape - new_shape) / 2. / input_shape
+            scale = input_shape / new_shape
+            box_yx = (box_yx - offset) * scale
+            box_hw *= scale
+
+        box_mins = box_yx - (box_hw / 2.)
+        box_maxes = box_yx + (box_hw / 2.)
+        boxes = np.concatenate([box_mins[..., 1:2], box_mins[..., 0:1], box_maxes[..., 1:2], box_maxes[..., 0:1]],
                                axis=-1)
         boxes *= np.concatenate([image_shape[1:2], image_shape[0:1]] * 2, axis=-1)
+
         return boxes
 
     # 预测后处理
@@ -164,7 +170,7 @@ class DetectionHead(nn.Module):
                 output[i] = output[i].cpu().numpy()
                 box_center_xy, box_wh = (output[i][:, 0:2] + output[i][:, 2:4]) / 2, output[i][:, 2:4] - output[i][:,
                                                                                                          0:2]
-                output[i][:, :4] = self.centernet_correct_boxes(box_center_xy, box_wh, input_shape, image_shape,
+                output[i][:, :4] = self.predbox2ori_box(box_center_xy, box_wh, input_shape, image_shape,
                                                                 letterbox_image)
         return output
 

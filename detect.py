@@ -3,7 +3,7 @@ import torch
 from PIL import Image
 from Detector.centernet_detector import CenterNetDetector
 from Utils.draw_bbox import draw_rectangle
-from Utils.process_img import preprocess_img
+from Utils.preprocess_img import preprocess_img
 from Utils.utils import get_classes
 import numpy as np
 
@@ -14,7 +14,7 @@ class InferenceConfig:
     #   输入网络的图片resize后的大小
     img_input_shape = [512, 512]
     #   是否使用letterbox_image方法，对输入图像进行不失真的resize
-    letterbox_image = False
+    letterbox_image = True
     # 得分置信度
     score_threshold = 0.3
     # 是否需要nms
@@ -46,14 +46,14 @@ if __name__ == "__main__":
             detector = CenterNetDetector(InferenceConfig.img_input_shape, img_shape, num_classes,
                                          config=InferenceConfig, mode='inference')
             with torch.no_grad():
-                detection_resuls = detector(img)
+                detection_results = detector(img)
             end_time = time()
             run_time = end_time - begin_time
             print('inference time:', run_time)
             # 绘制bbox
-            label = np.array(detection_resuls[0][:, 5], dtype='int32')
-            score = detection_resuls[0][:, 4]
-            bbox = detection_resuls[0][:, :4]
+            label = np.array(detection_results[0][:, 5], dtype='int32')
+            score = detection_results[0][:, 4]
+            bbox = detection_results[0][:, :4]
             draw_rectangle(label, score, bbox, image, InferenceConfig.img_input_shape, num_classes,
                            class_names)
             image.show()
