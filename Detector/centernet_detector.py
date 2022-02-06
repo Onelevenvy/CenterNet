@@ -105,26 +105,21 @@ class DetectionHead(nn.Module):
         return detects_results
 
     def centernet_correct_boxes(self, box_xy, box_wh, input_shape, image_shape, letterbox_image):
-        input_shape = np.array(input_shape)
-        image_shape = np.array(image_shape)
-
         if letterbox_image:
-            #   这里求出来的offset是图像有效区域相对于图像左上角的偏移情况
-            #   new_shape指的是宽高缩放情况
+            #   假设在高度方向增加了灰条
             new_shape = np.round(image_shape * np.min(input_shape / image_shape))
-            offset = (input_shape - new_shape) / 2. / input_shape
+            offset = [(input_shape - new_shape) / 2. / input_shape][::-1]
+            offset = offset[::-1]
             scale = input_shape / new_shape
-
-            box_xy = (box_xy - offset) * scale
-            box_wh *= scale
+            scale_wh = scale[::-1]
+            box_xy = (box_xy - offset) * scale  # offset x不变，y变小   scale：x不变，y变小 相当于x变大,y不变
+            box_wh *= scale_wh  # scale  w不变， h占比变大
 
         box_mins = box_xy - (box_wh / 2.)
         box_maxes = box_xy + (box_wh / 2.)
         boxes = np.concatenate([box_mins[..., 0:1], box_mins[..., 1:2], box_maxes[..., 0:1], box_maxes[..., 1:2]],
                                axis=-1)
         boxes *= np.concatenate([image_shape[1:2], image_shape[0:1]] * 2, axis=-1)
-        # boxes *= np.concatenate([image_shape, image_shape], axis=-1)
-        print(boxes)
         return boxes
 
     # 预测后处理

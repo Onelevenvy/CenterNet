@@ -10,7 +10,7 @@ class DefaultConfig:
     #   输入网络的图片resize后的大小
     img_input_shape = [512, 512]
     #   是否使用letterbox_image方法，对输入图像进行不失真的resize
-    letterbox_image = True,
+    letterbox_image = True
     # 得分置信度
     score_threshold = 0.3
     # 是否需要nms
